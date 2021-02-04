@@ -14,7 +14,7 @@ import utils
 
 
 def WGAN_tester(opt):
-    
+    results_path = opt.results_path
     # Save the model if pre_train == True
     def load_model_generator(net, epoch, opt):
         model_name = 'deepfillv2_WGAN_G_epoch%d_batchsize%d.pth' % (epoch, 4)
@@ -37,6 +37,8 @@ def WGAN_tester(opt):
     print('-------------------------Pretrained Model Loaded-------------------------')
 
     # To device
+    #device = torch.device(f'cuda:{opt.gpu_ids}' if torch.cuda.is_available() else 'cpu')
+    #generator = generator.cuda(device)
     generator = generator.cuda()
     
     # ----------------------------------------

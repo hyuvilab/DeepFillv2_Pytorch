@@ -2,7 +2,6 @@ import os
 import cv2
 import numpy as np
 import torch
-import imgcrop
 import random
 import math
 from PIL import Image, ImageDraw
@@ -41,8 +40,10 @@ class InpaintDataset(Dataset):
         return img, height, width
 
     def random_crop(self, img, seed):
-        width_list = [256, 320, 400, 480]
-        height_list = [256, 320, 400, 480]
+        # width_list = [256, 320, 400, 480]
+        # height_list = [256, 320, 400, 480]
+        width_list = [128, 160, 190, 230]
+        height_list = [128, 160, 190, 230]
         random.seed(seed)
         width = random.choice(width_list)
         random.seed(seed+1)
@@ -50,7 +51,6 @@ class InpaintDataset(Dataset):
         
         max_x = img.shape[1] - width
         max_y = img.shape[0] - height
-
         x = np.random.randint(0, max_x)
         y = np.random.randint(0, max_y)
         
