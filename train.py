@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr_decrease_epoch', type = int, default = 10, help = 'lr decrease at certain epoch and its multiple')
     parser.add_argument('--lr_decrease_factor', type = float, default = 0.5, help = 'lr decrease factor, for classification default 0.1')
     parser.add_argument('--lambda_l1', type = float, default = 100, help = 'the parameter of L1Loss')
+    parser.add_argument('--perceptual_loss', type = bool, default = False)
     parser.add_argument('--lambda_perceptual', type = float, default = 10, help = 'the parameter of FML1Loss (perceptual loss)')
     parser.add_argument('--lambda_gan', type = float, default = 1, help = 'the parameter of valid loss of AdaReconL1Loss; 0 is recommended')
     parser.add_argument('--num_workers', type = int, default = 8, help = 'number of cpu threads to use during batch generation')

@@ -2,14 +2,14 @@ python3 train.py \
 --baseroot '/home/dataset/places2/small_image/data_256' \
 --save_path './models' \
 --sample_path './samples' \
---gpu_ids '0,1' \
+--gpu_ids '0' \
 --gan_type 'WGAN' \
 --cudnn_benchmark True \
---checkpoint_interval 1000 \
+--checkpoint_interval 1 \
 --multi_gpu True \
 --load_name '' \
 --epochs 2 \
---batch_size 64 \
+--batch_size 32 \
 --lr_g 1e-4 \
 --lr_d 1e-4 \
 --lambda_l1 10 \
@@ -17,7 +17,7 @@ python3 train.py \
 --lambda_gan 1 \
 --lr_decrease_epoch 10 \
 --lr_decrease_factor 0.5 \
---num_workers 10 \
+--num_workers 6 \
 --in_channels 4 \
 --out_channels 3 \
 --latent_channels 48 \
@@ -32,5 +32,5 @@ python3 train.py \
 --mask_num 20 \
 --bbox_shape 30 \
 --max_angle 4 \
---max_len 40 \
---max_width 10 \
+--max_len 20 \
+--max_width 5 \

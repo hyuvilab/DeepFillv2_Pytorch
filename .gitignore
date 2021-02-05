@@ -1,1 +1,3 @@
 __pycache__/
+samples/
+pretrained_model/deepfillv2_WGAN_G_epoch40_batchsize4.pth

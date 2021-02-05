@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 import network
 import train_dataset
@@ -31,7 +32,10 @@ def WGAN_trainer(opt):
     # Build networks
     generator = utils.create_generator(opt)
     discriminator = utils.create_discriminator(opt)
-    perceptualnet = utils.create_perceptualnet()
+    if opt.perceptual_loss:
+        perceptualnet = utils.create_perceptualnet()
+    else:
+        perceptualnet = None
 
     # Loss functions
     L1Loss = nn.L1Loss()
@@ -96,14 +100,16 @@ def WGAN_trainer(opt):
     if opt.multi_gpu == True:
         generator = nn.DataParallel(generator)
         discriminator = nn.DataParallel(discriminator)
-        perceptualnet = nn.DataParallel(perceptualnet)
         generator = generator.cuda()
         discriminator = discriminator.cuda()
-        perceptualnet = perceptualnet.cuda()
+        if opt.perceptual_loss:
+            perceptualnet = nn.DataParallel(perceptualnet)
+            perceptualnet = perceptualnet.cuda()
     else:
         generator = generator.cuda()
         discriminator = discriminator.cuda()
-        perceptualnet = perceptualnet.cuda()
+        if opt.perceptual_loss:
+            perceptualnet = perceptualnet.cuda()
     
     # ----------------------------------------
     #       Initialize training dataset
@@ -176,14 +182,18 @@ def WGAN_trainer(opt):
             fake_scalar = discriminator(second_out_wholeimg, mask)
             GAN_Loss = -torch.mean(fake_scalar)
 
-            # Get the deep semantic feature maps, and compute Perceptual Loss
-            img_featuremaps = perceptualnet(img)                          # feature maps
-            second_out_featuremaps = perceptualnet(second_out)
-            second_PerceptualLoss = L1Loss(second_out_featuremaps, img_featuremaps)
-
             # Compute losses
             loss = opt.lambda_l1 * first_L1Loss + opt.lambda_l1 * second_L1Loss + \
-                   opt.lambda_perceptual * second_PerceptualLoss + opt.lambda_gan * GAN_Loss
+                 + opt.lambda_gan * GAN_Loss
+
+            if opt.perceptual_loss:
+                # Get the deep semantic feature maps, and compute Perceptual Loss
+                img_featuremaps = perceptualnet(img)                          # feature maps
+                second_out_featuremaps = perceptualnet(second_out)
+                second_PerceptualLoss = L1Loss(second_out_featuremaps, img_featuremaps)
+
+                loss = loss + opt.lambda_perceptual * second_PerceptualLoss
+
             loss.backward()
             optimizer_g.step()
 
@@ -193,12 +203,16 @@ def WGAN_trainer(opt):
             time_left = datetime.timedelta(seconds = batches_left * (time.time() - prev_time))
             prev_time = time.time()
 
+            summary = SummaryWriter()
+            summary.add_scalar('first Mask L1 Loss', first_L1Loss.item())
+            summary.add_scalar('second Mask L1 Loss', second_L1Loss.item())
+            summary.add_scalar('D Loss', loss_D.item())
+            summary.add_scalar('G Loss', GAN_Loss.item())
+            
             # Print log
             print("\r[Epoch %d/%d] [Batch %d/%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
                 ((epoch + 1), opt.epochs, batch_idx, len(dataloader), first_L1Loss.item(), second_L1Loss.item()))
-            print("\r[D Loss: %.5f] [G Loss: %.5f] [Perceptual Loss: %.5f] time_left: %s" %
-                (loss_D.item(), GAN_Loss.item(), second_PerceptualLoss.item(), time_left))
-            
+            print("\r[D Loss: %.5f] [G Loss: %.5f] time_left: %s" % (loss_D.item(), GAN_Loss.item(), time_left))
             masked_img = img * (1 - mask) + mask
             mask = torch.cat((mask, mask, mask), 1)
             if (batch_idx + 1) % 40 == 0:

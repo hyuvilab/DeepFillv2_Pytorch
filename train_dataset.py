@@ -220,7 +220,7 @@ class ValidationSet_with_Known_Mask(Dataset):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # mask
         maskpath = os.path.join(self.opt.maskroot, imgname)
-        img = cv2.imread(maskpath, cv2.IMREAD_GRAYSCALE)
+        mask = cv2.imread(maskpath, cv2.IMREAD_GRAYSCALE)
         # the outputs are entire image and mask, respectively
         img = torch.from_numpy(img.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
         mask = torch.from_numpy(mask.astype(np.float32)).unsqueeze(0).contiguous()
