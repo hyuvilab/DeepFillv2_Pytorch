@@ -7,7 +7,9 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
+import torchvision
+import matplotlib
 
 import network
 import train_dataset
@@ -36,6 +38,7 @@ def WGAN_trainer(opt):
         perceptualnet = utils.create_perceptualnet()
     else:
         perceptualnet = None
+
 
     # Loss functions
     L1Loss = nn.L1Loss()
@@ -202,23 +205,37 @@ def WGAN_trainer(opt):
             batches_left = opt.epochs * len(dataloader) - batches_done
             time_left = datetime.timedelta(seconds = batches_left * (time.time() - prev_time))
             prev_time = time.time()
-
-            summary = SummaryWriter()
-            summary.add_scalar('first Mask L1 Loss', first_L1Loss.item())
-            summary.add_scalar('second Mask L1 Loss', second_L1Loss.item())
-            summary.add_scalar('D Loss', loss_D.item())
-            summary.add_scalar('G Loss', GAN_Loss.item())
             
             # Print log
             print("\r[Epoch %d/%d] [Batch %d/%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
                 ((epoch + 1), opt.epochs, batch_idx, len(dataloader), first_L1Loss.item(), second_L1Loss.item()))
-            print("\r[D Loss: %.5f] [G Loss: %.5f] time_left: %s" % (loss_D.item(), GAN_Loss.item(), time_left))
+            print("\r[D Loss: %.5f] [G Loss: %.5f] time_left: %s" %
+                (loss_D.item(), GAN_Loss.item(), time_left))
+                
             masked_img = img * (1 - mask) + mask
             mask = torch.cat((mask, mask, mask), 1)
+            # Summary
             if (batch_idx + 1) % 40 == 0:
-                img_list = [img, mask, masked_img, first_out, second_out]
-                name_list = ['gt', 'mask', 'masked_img', 'first_out', 'second_out']
-                utils.save_sample_png(sample_folder = sample_folder, sample_name = 'epoch%d' % (epoch + 1), img_list = img_list, name_list = name_list, pixel_max_cnt = 255)
+                summary = SummaryWriter('models/tmp')
+
+                img_list = [img, masked_img, first_out, second_out]
+                # img_list = [x[0,:,:,:].copy_(x.data.squeeze()) for x in img_list]
+                # print(img_list.shape())
+                image_tensor = torch.cat([images[:1] for images in img_list], 0)
+                img_grid = torchvision.utils.make_grid(image_tensor.data, nrow=4, padding=0, normalize=False)
+                #img_grid = torchvision.utils.make_grid(img_list)
+                summary.add_image('img masked_img first_out second_out', img_grid, batches_done)
+
+                summary.add_scalar('first Mask L1 Loss', first_L1Loss.item(), batches_done)
+                summary.add_scalar('second Mask L1 Loss', second_L1Loss.item(), batches_done)
+                summary.add_scalar('D Loss', loss_D.item(), batches_done)
+                summary.add_scalar('G Loss', GAN_Loss.item(), batches_done)
+                if opt.perceptual_loss:
+                    summary.add_scalar('Perceptual Loss', second_PerceptualLoss.item(), batches_done)
+
+                summary.add_scalar('psnr', utils.psnr(second_out, img), batches_done)
+                summary.add_scalar('ssim', utils.ssim(second_out, img), batches_done)
+                
 
         # Learning rate decrease
         adjust_learning_rate(opt.lr_g, optimizer_g, (epoch + 1), opt)

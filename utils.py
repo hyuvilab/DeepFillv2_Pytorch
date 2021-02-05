@@ -4,8 +4,9 @@ import cv2
 import torch
 import torch.nn as nn
 import torchvision as tv
-
+import matplotlib.pyplot as plt
 import network
+from skimage.metrics import structural_similarity, peak_signal_noise_ratio
 
 # ----------------------------------------
 #                 Network
@@ -101,27 +102,37 @@ def save_sample_png(sample_folder, sample_name, img_list, name_list, pixel_max_c
         cv2.imwrite(save_img_path, img_copy)
 
 def psnr(pred, target, pixel_max_cnt = 255):
-    mse = torch.mul(target - pred, target - pred)
-    rmse_avg = (torch.mean(mse).item()) ** 0.5
-    p = 20 * np.log10(pixel_max_cnt / rmse_avg)
-    return p
-
-def grey_psnr(pred, target, pixel_max_cnt = 255):
-    pred = torch.sum(pred, dim = 0)
-    target = torch.sum(target, dim = 0)
-    mse = torch.mul(target - pred, target - pred)
-    rmse_avg = (torch.mean(mse).item()) ** 0.5
-    p = 20 * np.log10(pixel_max_cnt * 3 / rmse_avg)
-    return p
-
-def ssim(pred, target):
+    img_num = len(target)
     pred = pred.clone().data.permute(0, 2, 3, 1).cpu().numpy()
     target = target.clone().data.permute(0, 2, 3, 1).cpu().numpy()
-    target = target[0]
-    pred = pred[0]
-    ssim = skimage.measure.compare_ssim(target, pred, multichannel = True)
-    return ssim
+    # print(target.shape, pred.shape)(31, 160, 160, 3)
+    psnr = []
+    for i in range(img_num):
+        psnr.append(peak_signal_noise_ratio(target[i], pred[i]))
+    return np.mean(psnr)
 
+def ssim(pred, target):
+    img_num = len(target)
+    #  [31, 3, 160, 160]
+    pred = pred.clone().data.permute(0, 2, 3, 1).cpu().numpy()
+    target = target.clone().data.permute(0, 2, 3, 1).cpu().numpy()
+    # print(target.shape, pred.shape)(31, 160, 160, 3)
+    ssim = []
+    for i in range(img_num):
+        # (160, 160, 3)
+        ssim.append(structural_similarity(target[i], pred[i], multichannel = True))
+    return np.mean(ssim)
+
+def matplotlib_imshow(img, one_channel=False):
+    if one_channel:
+        img = img.mean(dim=0)
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.cpu().numpy()
+    if one_channel:
+        plt.imshow(npimg, cmap="Greys")
+    else:
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
+        
 ## for contextual attention
 
 def extract_image_patches(images, ksizes, strides, rates, padding='same'):
