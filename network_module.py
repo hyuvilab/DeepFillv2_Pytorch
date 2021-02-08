@@ -123,6 +123,8 @@ class GatedConv2d(nn.Module):
         else:
             assert 0, "Unsupported activation: {}".format(activation)
 
+        self.stride = stride
+        self.dilation = dilation
         # Initialize the convolution layers
         if sn:
             self.conv2d = SpectralNorm(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = 0, dilation = dilation))
