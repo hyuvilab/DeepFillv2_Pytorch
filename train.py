@@ -42,6 +42,12 @@ if __name__ == "__main__":
     parser.add_argument('--norm', type = str, default = 'in', help = 'normalization type')
     parser.add_argument('--init_type', type = str, default = 'xavier', help = 'the initialization type')
     parser.add_argument('--init_gain', type = float, default = 0.02, help = 'the initialization gain')
+
+    # Meta-learning parameters
+    parser.add_argument('--update_step', type = int, default=3, help='Number of inner updates')
+    parser.add_argument('--update_lr', type = float, default=2e-4)
+    parser.add_argument('--meta_lr', type = float, default=2e-4)
+
     # Dataset parameters
     parser.add_argument('--baseroot', type = str, default = "C:\\Users\\yzzha\\Desktop\\dataset\\ILSVRC2012_val_256", help = 'the training folder')
     parser.add_argument('--mask_type', type = str, default = 'free_form', help = 'mask type')
@@ -68,5 +74,6 @@ if __name__ == "__main__":
     # Enter main function
     import trainer
     if opt.gan_type == 'WGAN':
-        trainer.WGAN_trainer(opt)
+        #trainer.WGAN_trainer(opt)
+        trainer.Meta_trainer(opt)
     
