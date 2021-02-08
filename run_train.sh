@@ -8,7 +8,7 @@ python3 train.py \
 --checkpoint_interval 1 \
 --multi_gpu True \
 --load_name '' \
---epochs 2 \
+--epochs 10 \
 --batch_size 32 \
 --lr_g 1e-4 \
 --lr_d 1e-4 \
@@ -34,3 +34,5 @@ python3 train.py \
 --max_angle 4 \
 --max_len 20 \
 --max_width 5 \
+--resume \
+--resume_epoch 2 \

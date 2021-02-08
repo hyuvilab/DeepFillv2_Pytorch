@@ -123,7 +123,7 @@ def WGAN_trainer(opt):
     print('The overall number of images equals to %d' % len(trainset))
 
     # Define the dataloader
-    dataloader = DataLoader(trainset, batch_size = opt.batch_size, shuffle = False, num_workers = opt.num_workers, pin_memory = True, drop_last=True)
+    dataloader = DataLoader(trainset, batch_size = opt.batch_size, shuffle = True, num_workers = opt.num_workers, pin_memory = True, drop_last=True)
     
     # ----------------------------------------
     #            Training
@@ -230,6 +230,7 @@ def WGAN_trainer(opt):
                 summary.add_scalar('second Mask L1 Loss', second_L1Loss.item(), batches_done)
                 summary.add_scalar('D Loss', loss_D.item(), batches_done)
                 summary.add_scalar('G Loss', GAN_Loss.item(), batches_done)
+                summary.add_scalar('Total G Loss', loss.item(), batches_done)
                 if opt.perceptual_loss:
                     summary.add_scalar('Perceptual Loss', second_PerceptualLoss.item(), batches_done)
 

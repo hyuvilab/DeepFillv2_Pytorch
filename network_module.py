@@ -158,6 +158,7 @@ class TransposeGatedConv2d(nn.Module):
 #               Layer Norm
 # ----------------------------------------
 class LayerNorm(nn.Module):
+    # 안 씀
     def __init__(self, num_features, eps = 1e-8, affine = True):
         super(LayerNorm, self).__init__()
         self.num_features = num_features
@@ -286,6 +287,9 @@ class ContextualAttention(nn.Module):
                                                self.rate*self.stride],
                                       rates=[1, 1],
                                       padding='same') # [N, C*k*k, L]
+        # N : The number of input batches
+        # C : The number of input feature map channels
+        # L : Total number of blocks
         # raw_shape: [N, C, k, k, L] [4, 192, 4, 4, 1024]
         raw_w = raw_w.view(raw_int_bs[0], raw_int_bs[1], kernel, kernel, -1)
         raw_w = raw_w.permute(0, 4, 1, 2, 3)    # raw_shape: [N, L, C, k, k]
