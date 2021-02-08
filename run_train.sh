@@ -2,7 +2,7 @@ python3 train.py \
 --baseroot '/home/dataset/places2/small_image/data_256' \
 --save_path './models' \
 --sample_path './samples' \
---gpu_ids '1' \
+--gpu_ids '0' \
 --gan_type 'WGAN' \
 --cudnn_benchmark True \
 --checkpoint_interval 1 \

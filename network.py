@@ -7,26 +7,6 @@ import torchvision
 from network_module import *
 
 
-'''
-[*] Explicit network configuration:
-
-'''
-
-def gen_gatedconv2d_config(in_ch, out_ch, kernel_size, stride, padding, dilation, pad_type, activation, norm, sn=False):
-    output_var_shape = []
-    output_var_shape.append([in_ch, out_ch, kernel_size, kernel_size])
-    output_var_shape.append([in_ch, out_ch, kernel_size, kernel_size])
-
-
-
-
-
-
-
-
-
-
-
 
 def weights_init(net, init_type = 'kaiming', init_gain = 0.02):
     """Initialize network weights.
@@ -71,94 +51,79 @@ class GatedGenerator(nn.Module):
         self.vars = nn.ParameterList()
 
         self.coarse_config = [
-            ('gatedconv', [opt.in_channels, opt.latent_channels, 5, 1, 2, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels, opt.latent_channels * 2, 3, 2, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 4, 3, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.in_channels, opt.latent_channels, 5, 1, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels * 2, 3, 2, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 4, 3, 2, 1, 1, opt.pad_type, opt.activation, opt.norm]),
             # Bottleneck
-            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
             ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, 2, opt.pad_type, opt.activation, opt.norm]),
             ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, 4, opt.pad_type, opt.activation, opt.norm]),
             ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, 8, opt.pad_type, opt.activation, opt.norm]),
             ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, 16, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
             # decoder
-            ('transposedgatedconv', [opt.latent_channels * 4, opt.latent_channels * 2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('transposedgatedconv', [opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels, opt.latent_channels//2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('gatedconv', [opt.latent_channels//2, opt.out_channels, 3, 1, 1, opt.pad_type, 'none', opt.norm]),
+            ('transposedgatedconv', [opt.latent_channels * 4, opt.latent_channels * 2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('transposedgatedconv', [opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels//2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels//2, opt.out_channels, 3, 1, 1, 1, opt.pad_type, 'none', opt.norm]),
             ('tanh', None)
         ]
-        self.build_parameters(self.coarse_config)
+        self.refine_conv_start = self.build_parameters(self.coarse_config)
+        print('refine_conv_start: {}'.format(self.refine_conv_start))
 
 
+        self.refine_conv_config = [
+            ('gatedconv', [opt.in_channels, opt.latent_channels, 5, 1, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels, 3, 2, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels*2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*2, opt.latent_channels*2, 3, 2, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*2, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, 2, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, 4, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, 8, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, 16, opt.pad_type, opt.activation, opt.norm])
+        ]
+        self.refine_atten_1_start = self.build_parameters(self.refine_conv_config) + self.refine_conv_start
 
-        self._coarse = nn.Sequential(
-            # encoder
-            GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels * 2, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 2, opt.latent_channels * 4, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            # Bottleneck
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, dilation = 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, dilation = 4, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, dilation = 8, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, dilation = 16, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            # decoder
-            TransposeGatedConv2d(opt.latent_channels * 4, opt.latent_channels * 2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            TransposeGatedConv2d(opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels//2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels//2, opt.out_channels, 3, 1, 1, pad_type = opt.pad_type, activation = 'none', norm = opt.norm),
-            nn.Tanh()
-        )
-        
-        self.refine_conv = nn.Sequential(
-            GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*2, opt.latent_channels*2, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*2, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, dilation = 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, dilation = 4, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, dilation = 8, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, dilation = 16, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm)
-        )
-        self.refine_atten_1 = nn.Sequential(
-            GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*2, opt.latent_channels*4, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = 'relu', norm = opt.norm)
-        )
-        self.refine_atten_2 = nn.Sequential(
-            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm)
-        )
-        self.refine_combine = nn.Sequential(
-            GatedConv2d(opt.latent_channels*8, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            TransposeGatedConv2d(opt.latent_channels * 4, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels*2, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            TransposeGatedConv2d(opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels, opt.latent_channels//2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
-            GatedConv2d(opt.latent_channels//2, opt.out_channels, 3, 1, 1, pad_type = opt.pad_type, activation = 'none', norm = opt.norm),
-            nn.Tanh()
-        )
+        self.refine_atten_1_config = [
+            ('gatedconv', [opt.in_channels, opt.latent_channels, 5, 1, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels, 3, 2, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels*2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*2, opt.latent_channels*4, 3, 2, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, 'relu', opt.norm])
+        ]
+        self.refine_atten_2_start = self.build_parameters(self.refine_atten_1_config) + self.refine_atten_1_start
+
+        self.refine_atten_2_config = [
+            ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm])
+        ]
+        self.refine_combine_start = self.build_parameters(self.refine_atten_2_config) + self.refine_atten_2_start
+
+        self.refine_combine_config = [
+            ('gatedconv', [opt.latent_channels*8, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('transposedgatedconv', [opt.latent_channels * 4, opt.latent_channels*2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels*2, opt.latent_channels*2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('transposedgatedconv', [opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels//2, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels//2, opt.out_channels, 3, 1, 1, 1, opt.pad_type, 'none', opt.norm]),
+            ('tanh', None)
+        ]
+        self.context_attention_start = self.build_parameters(self.refine_combine_config) + self.refine_combine_start
+
         self.context_attention = ContextualAttention(ksize=3, stride=1, rate=2, fuse_k=3, softmax_scale=10,
                                                      fuse=True)
 
 
     def build_parameters(self, config_list):
+        count = 0
         for (name, param_config) in config_list:
             if(name == 'gatedconv' or name == 'transposedgatedconv'):
                 w = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
@@ -169,27 +134,48 @@ class GatedGenerator(nn.Module):
                 torch.nn.init.kaiming_normal_(w2)
                 self.vars.append(w2)
                 self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
+                count += 4
+
+        return count
 
 
-    def coarse(self, x, vars):
-        idx = 0
-        for (name, param_config) in self.coarse_config:
+    def inner_modules(self, x, vars, name):
+
+        if(name == 'coarse'):
+            config = self.coarse_config
+            idx = 0
+        if(name == 'refine_conv'):
+            config = self.refine_conv_config
+            idx = self.refine_conv_start
+        if(name == 'refine_atten_1'):
+            config = self.refine_atten_1_config
+            idx = self.refine_atten_1_start
+        if(name == 'refine_atten_2'):
+            config = self.refine_atten_2_config
+            idx = self.refine_atten_2_start
+        if(name == 'refine_combine'):
+            config = self.refine_combine_config
+            idx = self.refine_combine_start
+
+        for (name, param_config) in config:
             if(name == 'gatedconv' or name == 'transposedgatedconv'):
                 if(name == 'transposedgatedconv'):
-                    scale_factor = 2 if(len(param_config) < 9) else param_config[8]
+                    scale_factor = 2 if(len(param_config) < 10) else param_config[9]
                     x = F.interpolate(x, scale_factor=scale_factor, mode = 'nearest')
-                x = F.pad(x, param_config[4])
+                if(param_config[4] > 0):
+                    x = F.pad(x, (param_config[4], param_config[4], param_config[4], param_config[4]))
+
                 conv = F.conv2d(x, vars[idx], vars[idx+1], param_config[3], 0, param_config[5])
                 mask = F.conv2d(x, vars[idx+2], vars[idx+3], param_config[3], 0, param_config[5])
                 gated_mask = F.sigmoid(mask)
-                if(param_config[7] != 'none'):
+                if(param_config[7] == 'lrelu'):
                     conv = F.leaky_relu(conv, 0.2, inplace=True)
+                elif(param_config[7] == 'relu'):
+                    conv = F.relu(conv, inplace=True)
                 x = conv * gated_mask
                 idx += 4
             elif(name == 'tanh'):
                 x = F.tanh(x)
-                idx += 1
-
         return x
                 
         
@@ -200,20 +186,24 @@ class GatedGenerator(nn.Module):
         # Coarse
         first_masked_img = img * (1 - mask) + mask
         first_in = torch.cat((first_masked_img, mask), dim=1)       # in: [B, 4, H, W]
-        first_out = self.coarse(first_in, vars)                           # out: [B, 3, H, W]
+        first_out = self.inner_modules(first_in, vars, 'coarse')                           # out: [B, 3, H, W]
         first_out = nn.functional.interpolate(first_out, (img.shape[2], img.shape[3]))
 
         # Refinement
         second_masked_img = img * (1 - mask) + first_out * mask
         second_in = torch.cat([second_masked_img, mask], dim=1)
-        refine_conv = self.refine_conv(second_in)     
-        refine_atten = self.refine_atten_1(second_in)
+        #refine_conv = self.refine_conv(second_in)     
+        refine_conv = self.inner_modules(second_in, vars, 'refine_conv')
+        #refine_atten = self.refine_atten_1(second_in)
+        refine_atten = self.inner_modules(second_in, vars, 'refine_atten_1')
         mask_s = nn.functional.interpolate(mask, (refine_atten.shape[2], refine_atten.shape[3]))
         refine_atten = self.context_attention(refine_atten, refine_atten, mask_s)
-        refine_atten = self.refine_atten_2(refine_atten)
+        #refine_atten = self.refine_atten_2(refine_atten)
+        refine_atten = self.inner_modules(refine_atten, vars, 'refine_atten_2')
         second_out = torch.cat([refine_conv, refine_atten], dim=1)
-        second_out = self.refine_combine(second_out)
-        second_out = nn.functional.interpolate(second_out, (img.shape[2], img.shape[3]))
+        #second_out = self.refine_combine(second_out)
+        second_out = self.inner_modules(second_out, vars, 'refine_combine')
+        second_out = F.interpolate(second_out, (img.shape[2], img.shape[3]))
         return first_out, second_out
 
 #-----------------------------------------------
@@ -224,23 +214,72 @@ class GatedGenerator(nn.Module):
 class PatchDiscriminator(nn.Module):
     def __init__(self, opt):
         super(PatchDiscriminator, self).__init__()
-        # Down sampling
-        self.block1 = Conv2dLayer(opt.in_channels, opt.latent_channels, 7, 1, 3, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
-        self.block2 = Conv2dLayer(opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
-        self.block3 = Conv2dLayer(opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
-        self.block4 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
-        self.block5 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
-        self.block6 = Conv2dLayer(opt.latent_channels * 4, 1, 4, 2, 1, pad_type = opt.pad_type, activation = 'none', norm = 'none', sn = True)
-        
-    def forward(self, img, mask):
+        self.vars = nn.ParameterList()
+
+        self.config = [
+            ('conv', [opt.in_channels, opt.latent_channels, 7, 1, 3, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 4, 1, 4, 2, 1, opt.pad_type, 'none', 'none'])
+        ]
+        self.build_parameters(self.config)
+
+
+    def build_parameters(self, config_list):
+        count = 0
+        for (name, param_config) in config_list:
+            if(name == 'conv'):
+                w = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
+                torch.nn.init.kaiming_normal_(w)
+
+                # Spectral Normalization
+                height = w.data.shape[0]
+                width = w.view(height, -1).data.shape[1]
+                u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False)
+                v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False)
+                u.data = l2normalize(u.data)
+                v.data = l2normalize(v.data)
+
+                self.vars.append(w)
+                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
+                self.vars.append(u)
+                self.vars.append(v)
+                count += 4
+        return count
+
+
+    def inner_modules(self, x, vars, config):
+        idx = 0
+        for (name, param_config) in config:
+            if(name == 'conv'):
+                if(param_config[4] > 0):
+                    x = F.pad(x, (param_config[4], param_config[4], param_config[4], param_config[4]))
+
+                # Spectral Normalization here
+                w = vars[idx]
+                u = vars[idx+2]
+                v = vars[idx+3]
+                height = w.data.shape[0]
+                v.data = l2normalize(torch.mv(torch.t(w.view(height,-1).data), u.data))
+                u.data = l2normalize(torch.mv(w.view(height,-1).data, v.data))
+                sigma = u.dot(w.view(height, -1).mv(v))
+                w = w / sigma.expand_as(w)
+
+                x = F.conv2d(x, w, vars[idx+1], param_config[3], 0)
+                if(param_config[7] == 'lrelu'):
+                    x = F.leaky_relu(x, 0.2, inplace=True)
+                idx += 4
+        return x
+
+
+    def forward(self, img, mask, vars=None):
+        if(vars is None):
+            vars = self.vars
         # the input x should contain 4 channels because it is a combination of recon image and mask
         x = torch.cat((img, mask), 1)
-        x = self.block1(x)                                      # out: [B, 64, 256, 256]
-        x = self.block2(x)                                      # out: [B, 128, 128, 128]
-        x = self.block3(x)                                      # out: [B, 256, 64, 64]
-        x = self.block4(x)                                      # out: [B, 256, 32, 32]
-        x = self.block5(x)                                      # out: [B, 256, 16, 16]
-        x = self.block6(x)                                      # out: [B, 256, 8, 8]
+        x = self.inner_modules(x, vars, self.config)
         return x
 
 # ----------------------------------------
