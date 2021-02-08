@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--load_name', type = str, default = '', help = 'load model name')
     # Training parameters
     parser.add_argument('--epochs', type = int, default = 40, help = 'number of epochs of training')
+    parser.add_argument('--logs_dir_path', type = str, default = 'models/tmp', help = 'path to save summary')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--resume_epoch', type = int, default = 0)
     parser.add_argument('--batch_size', type = int, default = 1, help = 'size of the batches')

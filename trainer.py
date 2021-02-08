@@ -123,7 +123,7 @@ def WGAN_trainer(opt):
     print('The overall number of images equals to %d' % len(trainset))
 
     # Define the dataloader
-    dataloader = DataLoader(trainset, batch_size = opt.batch_size, shuffle = True, num_workers = opt.num_workers, pin_memory = True, drop_last=True)
+    dataloader = DataLoader(trainset, batch_size = opt.batch_size, shuffle = False, num_workers = opt.num_workers, pin_memory = True, drop_last=True)
     
     # ----------------------------------------
     #            Training
@@ -216,7 +216,7 @@ def WGAN_trainer(opt):
             mask = torch.cat((mask, mask, mask), 1)
             # Summary
             if (batch_idx + 1) % 40 == 0:
-                summary = SummaryWriter('models/tmp')
+                summary = SummaryWriter(opt.logs_dir_path)
 
                 img_list = [img, masked_img, first_out, second_out]
                 # img_list = [x[0,:,:,:].copy_(x.data.squeeze()) for x in img_list]
@@ -234,8 +234,8 @@ def WGAN_trainer(opt):
                 if opt.perceptual_loss:
                     summary.add_scalar('Perceptual Loss', second_PerceptualLoss.item(), batches_done)
 
-                summary.add_scalar('psnr', utils.psnr(second_out, img), batches_done)
-                summary.add_scalar('ssim', utils.ssim(second_out, img), batches_done)
+                summary.add_scalar('psnr', utils.psnr(second_out_wholeimg, img), batches_done)
+                summary.add_scalar('ssim', utils.ssim(second_out_wholeimg, img), batches_done)
                 
 
         # Learning rate decrease
