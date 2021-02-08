@@ -1,9 +1,32 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+from torch.nn import functional as F
 import torchvision
 
 from network_module import *
+
+
+'''
+[*] Explicit network configuration:
+
+'''
+
+def gen_gatedconv2d_config(in_ch, out_ch, kernel_size, stride, padding, dilation, pad_type, activation, norm, sn=False):
+    output_var_shape = []
+    output_var_shape.append([in_ch, out_ch, kernel_size, kernel_size])
+    output_var_shape.append([in_ch, out_ch, kernel_size, kernel_size])
+
+
+
+
+
+
+
+
+
+
+
 
 def weights_init(net, init_type = 'kaiming', init_gain = 0.02):
     """Initialize network weights.
@@ -43,7 +66,37 @@ def weights_init(net, init_type = 'kaiming', init_gain = 0.02):
 class GatedGenerator(nn.Module):
     def __init__(self, opt):
         super(GatedGenerator, self).__init__()
-        self.coarse = nn.Sequential(
+
+
+        self.vars = nn.ParameterList()
+
+        self.coarse_config = [
+            ('gatedconv', [opt.in_channels, opt.latent_channels, 5, 1, 2, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels * 2, 3, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 4, 3, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            # Bottleneck
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, 2, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, 4, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, 8, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, 16, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            # decoder
+            ('transposedgatedconv', [opt.latent_channels * 4, opt.latent_channels * 2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('transposedgatedconv', [opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels, opt.latent_channels//2, 3, 1, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('gatedconv', [opt.latent_channels//2, opt.out_channels, 3, 1, 1, opt.pad_type, 'none', opt.norm]),
+            ('tanh', None)
+        ]
+        self.build_parameters(self.coarse_config)
+
+
+
+        self._coarse = nn.Sequential(
             # encoder
             GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
             GatedConv2d(opt.latent_channels, opt.latent_channels * 2, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
@@ -65,7 +118,7 @@ class GatedGenerator(nn.Module):
             GatedConv2d(opt.latent_channels, opt.latent_channels//2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
             GatedConv2d(opt.latent_channels//2, opt.out_channels, 3, 1, 1, pad_type = opt.pad_type, activation = 'none', norm = opt.norm),
             nn.Tanh()
-      )
+        )
         
         self.refine_conv = nn.Sequential(
             GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
@@ -104,15 +157,52 @@ class GatedGenerator(nn.Module):
         self.context_attention = ContextualAttention(ksize=3, stride=1, rate=2, fuse_k=3, softmax_scale=10,
                                                      fuse=True)
 
+
+    def build_parameters(self, config_list):
+        for (name, param_config) in config_list:
+            if(name == 'gatedconv' or name == 'transposedgatedconv'):
+                w = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
+                torch.nn.init.kaiming_normal_(w)
+                self.vars.append(w)
+                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
+                w2 = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
+                torch.nn.init.kaiming_normal_(w2)
+                self.vars.append(w2)
+                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
+
+
+    def coarse(self, x, vars):
+        idx = 0
+        for (name, param_config) in self.coarse_config:
+            if(name == 'gatedconv' or name == 'transposedgatedconv'):
+                if(name == 'transposedgatedconv'):
+                    scale_factor = 2 if(len(param_config) < 9) else param_config[8]
+                    x = F.interpolate(x, scale_factor=scale_factor, mode = 'nearest')
+                x = F.pad(x, param_config[4])
+                conv = F.conv2d(x, vars[idx], vars[idx+1], param_config[3], 0, param_config[5])
+                mask = F.conv2d(x, vars[idx+2], vars[idx+3], param_config[3], 0, param_config[5])
+                gated_mask = F.sigmoid(mask)
+                if(param_config[7] != 'none'):
+                    conv = F.leaky_relu(conv, 0.2, inplace=True)
+                x = conv * gated_mask
+                idx += 4
+            elif(name == 'tanh'):
+                x = F.tanh(x)
+                idx += 1
+
+        return x
+                
         
-    def forward(self, img, mask):
-        # img: entire img
-        # mask: 1 for mask region; 0 for unmask region
+    def forward(self, img, mask, vars=None):
+        if(vars is None):
+            vars = self.vars
+
         # Coarse
         first_masked_img = img * (1 - mask) + mask
         first_in = torch.cat((first_masked_img, mask), dim=1)       # in: [B, 4, H, W]
-        first_out = self.coarse(first_in)                           # out: [B, 3, H, W]
+        first_out = self.coarse(first_in, vars)                           # out: [B, 3, H, W]
         first_out = nn.functional.interpolate(first_out, (img.shape[2], img.shape[3]))
+
         # Refinement
         second_masked_img = img * (1 - mask) + first_out * mask
         second_in = torch.cat([second_masked_img, mask], dim=1)

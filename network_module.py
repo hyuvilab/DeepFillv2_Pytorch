@@ -123,19 +123,25 @@ class GatedConv2d(nn.Module):
         else:
             assert 0, "Unsupported activation: {}".format(activation)
 
+        self.stride = stride
+        self.dilation = dilation
         # Initialize the convolution layers
         if sn:
             self.conv2d = SpectralNorm(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = 0, dilation = dilation))
             self.mask_conv2d = SpectralNorm(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = 0, dilation = dilation))
+        '''
         else:
             self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = 0, dilation = dilation)
             self.mask_conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = 0, dilation = dilation)
+        '''
         self.sigmoid = torch.nn.Sigmoid()
     
-    def forward(self, x):
+    def forward(self, x, vars):
         x = self.pad(x)
-        conv = self.conv2d(x)
-        mask = self.mask_conv2d(x)
+        #conv = self.conv2d(x)
+        conv = F.conv2d(x, vars[0], vars[1], self.stride, 0, self.dilation)
+        #mask = self.mask_conv2d(x)
+        mask = F.conv2d(x, vars[2], vars[3], self.stride, 0, self.dilation)
         gated_mask = self.sigmoid(mask)
         if self.activation:
             conv = self.activation(conv)
