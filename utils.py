@@ -15,7 +15,8 @@ def create_generator(opt):
     # Initialize the networks
     generator = network.GatedGenerator(opt)
     print('Generator is created!')
-    network.weights_init(generator, init_type = opt.init_type, init_gain = opt.init_gain)
+    # Duplicate initialization
+    #network.weights_init(generator, init_type = opt.init_type, init_gain = opt.init_gain)
     print('Initialize generator with %s type' % opt.init_type)
     return generator
 
@@ -23,7 +24,8 @@ def create_discriminator(opt):
     # Initialize the networks
     discriminator = network.PatchDiscriminator(opt)
     print('Discriminator is created!')
-    network.weights_init(discriminator, init_type = opt.init_type, init_gain = opt.init_gain)
+    # Duplicate initialization
+    #network.weights_init(discriminator, init_type = opt.init_type, init_gain = opt.init_gain)
     print('Initialize discriminator with %s type' % opt.init_type)
     return discriminator
 

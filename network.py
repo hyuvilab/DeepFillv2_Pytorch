@@ -237,8 +237,8 @@ class PatchDiscriminator(nn.Module):
                 # Spectral Normalization
                 height = w.data.shape[0]
                 width = w.view(height, -1).data.shape[1]
-                u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False)
-                v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False)
+                u = Parameter(w.data.new(height).normal_(0, 1))#, requires_grad=False)      >> This may be problematic!!
+                v = Parameter(w.data.new(width).normal_(0, 1))#, requires_grad=False)
                 u.data = l2normalize(u.data)
                 v.data = l2normalize(v.data)
 
