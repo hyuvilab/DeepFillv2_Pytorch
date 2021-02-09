@@ -62,7 +62,7 @@ def WGAN_tester(opt):
 
         # Generator output
         with torch.no_grad():
-            first_out, second_out = generator(img, mask)
+            first_out, second_out, _ = generator(img, mask)
 
         # forward propagation
         first_out_wholeimg = img * (1 - mask) + first_out * mask        # in range [0, 1]

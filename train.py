@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--load_name', type = str, default = '', help = 'load model name')
     # Training parameters
     parser.add_argument('--epochs', type = int, default = 40, help = 'number of epochs of training')
+    parser.add_argument('--logs_dir_path', type = str, default = 'models/tmp', help = 'path to save summary')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--resume_epoch', type = int, default = 0)
     parser.add_argument('--batch_size', type = int, default = 1, help = 'size of the batches')
@@ -47,6 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--update_step', type = int, default=3, help='Number of inner updates')
     parser.add_argument('--update_lr', type = float, default=2e-4)
     parser.add_argument('--meta_lr', type = float, default=2e-4)
+    parser.add_argument('--meta_training', action='store_true')
 
     # Dataset parameters
     parser.add_argument('--baseroot', type = str, default = "C:\\Users\\yzzha\\Desktop\\dataset\\ILSVRC2012_val_256", help = 'the training folder')
@@ -74,6 +76,8 @@ if __name__ == "__main__":
     # Enter main function
     import trainer
     if opt.gan_type == 'WGAN':
-        #trainer.WGAN_trainer(opt)
-        trainer.Meta_trainer(opt)
+        if opt.meta_training:
+            trainer.Meta_trainer(opt)
+        else:
+            trainer.WGAN_trainer(opt)
     

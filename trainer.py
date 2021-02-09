@@ -156,7 +156,7 @@ def WGAN_trainer(opt):
             optimizer_d.zero_grad()
 
             # Generator output
-            first_out, second_out = generator(img, mask)
+            first_out, second_out, offset_flow = generator(img, mask)
 
             # forward propagation
             first_out_wholeimg = img * (1 - mask) + first_out * mask        # in range [0, 1]
@@ -217,25 +217,35 @@ def WGAN_trainer(opt):
             mask = torch.cat((mask, mask, mask), 1)
             # Summary
             if (batch_idx + 1) % 40 == 0:
-                summary = SummaryWriter('models/tmp')
+                summary = SummaryWriter(opt.logs_dir_path)
 
-                img_list = [img, masked_img, first_out, second_out]
+                img_list = [img, masked_img, first_out, second_out, second_out_wholeimg, offset_flow]
                 # img_list = [x[0,:,:,:].copy_(x.data.squeeze()) for x in img_list]
                 # print(img_list.shape())
                 image_tensor = torch.cat([images[:1] for images in img_list], 0)
-                img_grid = torchvision.utils.make_grid(image_tensor.data, nrow=4, padding=0, normalize=False)
+                img_grid = torchvision.utils.make_grid(image_tensor.data, nrow=5, padding=0, normalize=False)
                 #img_grid = torchvision.utils.make_grid(img_list)
-                summary.add_image('img masked_img first_out second_out', img_grid, batches_done)
+                summary.add_image('img masked_img first_out second_out rs CA_flow', img_grid, batches_done)
 
                 summary.add_scalar('first Mask L1 Loss', first_L1Loss.item(), batches_done)
                 summary.add_scalar('second Mask L1 Loss', second_L1Loss.item(), batches_done)
                 summary.add_scalar('D Loss', loss_D.item(), batches_done)
                 summary.add_scalar('G Loss', GAN_Loss.item(), batches_done)
+                summary.add_scalar('Total G Loss', loss.item(), batches_done)
+
                 if opt.perceptual_loss:
                     summary.add_scalar('Perceptual Loss', second_PerceptualLoss.item(), batches_done)
 
                 summary.add_scalar('psnr', utils.psnr(second_out, img), batches_done)
                 summary.add_scalar('ssim', utils.ssim(second_out, img), batches_done)
+
+                # viz_max_out = 16
+                # if masked_img.size(0) > viz_max_out:
+                #     viz_images = torch.stack([masked_img[:viz_max_out], second_out[:viz_max_out],
+                #                               offset_flow[:viz_max_out]], dim=1)
+                # else:
+                #     viz_images = torch.stack([masked_img, second_out, offset_flow], dim=1)
+                # viz_images = viz_images.view(-1, *list(masked_img.size())[1:])
                 
 
         # Learning rate decrease

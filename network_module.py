@@ -123,8 +123,6 @@ class GatedConv2d(nn.Module):
         else:
             assert 0, "Unsupported activation: {}".format(activation)
 
-        self.stride = stride
-        self.dilation = dilation
         # Initialize the convolution layers
         if sn:
             self.conv2d = SpectralNorm(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = 0, dilation = dilation))
@@ -390,4 +388,27 @@ class ContextualAttention(nn.Module):
         y = torch.cat(y, dim=0)  # back to the mini-batch
         y.contiguous().view(raw_int_fs)
 
-        return y
+        offsets = torch.cat(offsets, dim=0)
+        offsets = offsets.view(int_fs[0], 2, *int_fs[2:])
+
+        # case1: visualize optical flow: minus current position
+        h_add = torch.arange(int_fs[2]).view([1, 1, int_fs[2], 1]).expand(int_fs[0], -1, -1, int_fs[3])
+        w_add = torch.arange(int_fs[3]).view([1, 1, 1, int_fs[3]]).expand(int_fs[0], -1, int_fs[2], -1)
+        ref_coordinate = torch.cat([h_add, w_add], dim=1)
+        if self.use_cuda:
+            ref_coordinate = ref_coordinate.cuda()
+
+        offsets = offsets - ref_coordinate
+        # flow = pt_flow_to_image(offsets)
+
+        flow = torch.from_numpy(flow_to_image(offsets.permute(0, 2, 3, 1).cpu().data.numpy())) / 255.
+        flow = flow.permute(0, 3, 1, 2)
+        if self.use_cuda:
+            flow = flow.cuda()
+        # case2: visualize which pixels are attended
+        # flow = torch.from_numpy(highlight_flow((offsets * mask.long()).cpu().data.numpy()))
+
+        if self.rate != 1:
+            flow = F.interpolate(flow, scale_factor=self.rate*4, mode='nearest')
+
+        return y, flow
