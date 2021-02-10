@@ -34,4 +34,4 @@ python3 train.py \
 --max_angle 4 \
 --max_len 20 \
 --max_width 5 \
---logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/tmp_loss' \
+--logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/logs' \

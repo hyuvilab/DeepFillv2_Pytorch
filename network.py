@@ -302,6 +302,12 @@ class GatedGenerator_(nn.Module):
 # Input: generated image / ground truth and mask
 # Output: patch based region, we set 30 * 30
 
+#-----------------------------------------------
+#                  Discriminator
+#-----------------------------------------------
+# Input: generated image / ground truth and mask
+# Output: patch based region, we set 30 * 30
+'''
 class PatchDiscriminator(nn.Module):
     def __init__(self, opt):
         super(PatchDiscriminator, self).__init__()
@@ -309,12 +315,12 @@ class PatchDiscriminator(nn.Module):
         self.sn_uv = []
 
         self.config = [
-            ('conv', [opt.in_channels, opt.latent_channels, 7, 1, 3, 1, opt.pad_type, opt.activation, opt.norm, True]),
-            ('conv', [opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
-            ('conv', [opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
-            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
-            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
-            ('conv', [opt.latent_channels * 4, 1, 4, 2, 1, 1, opt.pad_type, 'none', 'none', True])
+            ('conv', [opt.in_channels, opt.latent_channels, 7, 1, 3, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
+            ('conv', [opt.latent_channels * 4, 1, 4, 2, 1, opt.pad_type, 'none', 'none'])
         ]
         self.build_parameters(self.config)
 
@@ -329,13 +335,8 @@ class PatchDiscriminator(nn.Module):
                 # Spectral Normalization
                 height = w.data.shape[0]
                 width = w.view(height, -1).data.shape[1]
-<<<<<<< HEAD
-                u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False)      # >> This may be problematic!!
-                v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False)
-=======
                 u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False).cuda() 
                 v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False).cuda()
->>>>>>> 69221425aa313c0967f4f8ae310ada022168bfdf
                 u.data = l2normalize(u.data)
                 v.data = l2normalize(v.data)
 
@@ -378,8 +379,6 @@ class PatchDiscriminator(nn.Module):
         x = torch.cat((img, mask), 1)
         x = self.inner_modules(x, vars, self.config)
         return x
-        
-
 '''
 class PatchDiscriminator(nn.Module):
     def __init__(self, opt):
@@ -391,8 +390,8 @@ class PatchDiscriminator(nn.Module):
         self.block4 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
         self.block5 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
         self.block6 = Conv2dLayer(opt.latent_channels * 4, 1, 4, 2, 1, pad_type = opt.pad_type, activation = 'none', norm = 'none', sn = True)
-                                     in_channels, out_channels, kernel_size, stride = 1, padding = 0, dilation = 1, 
-                                     pad_type = 'zero', activation = 'elu', norm = 'none', sn = False
+
+        
     def forward(self, img, mask):
         # the input x should contain 4 channels because it is a combination of recon image and mask
         x = torch.cat((img, mask), 1)
@@ -403,7 +402,7 @@ class PatchDiscriminator(nn.Module):
         x = self.block5(x)                                      # out: [B, 256, 16, 16]
         x = self.block6(x)                                      # out: [B, 256, 8, 8]
         return x
-        '''
+        
 # ----------------------------------------
 #            Perceptual Network
 # ----------------------------------------
