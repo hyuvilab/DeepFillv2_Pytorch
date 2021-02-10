@@ -381,9 +381,10 @@ def Meta_trainer(opt):
 
             img = img.cuda()
             # set the same free form masks for each batch
-            mask = torch.empty(img.shape[0], 1, img.shape[2], img.shape[3]).cuda()
+            mask = torch.empty(img.shape[0], opt.update_step+1, 1, img.shape[2], img.shape[3]).cuda()
             for i in range(opt.batch_size):
-                mask[i] = torch.from_numpy(train_dataset.InpaintDataset.random_ff_mask(
+                for j in range(opt.update_step+1):
+                    mask[i, j] = torch.from_numpy(train_dataset.InpaintDataset.random_ff_mask(
                                                 shape=(height[0], width[0])).astype(np.float32)).cuda()
             
             # Meta-train step

@@ -282,7 +282,7 @@ class Meta(nn.Module):
         :return:
         """
         img_tasks = img_tasks.unsqueeze(1)
-        mask_tasks = mask_tasks.unsqueeze(1)
+        mask_tasks = mask_tasks.unsqueeze(2)
         task_num, setsz, c_, h, w = img_tasks.size()
 
         losses_g = [0 for _ in range(self.update_step + 1)]
@@ -295,93 +295,90 @@ class Meta(nn.Module):
             mask = mask_tasks[i]
             
             ## Discriminator update
-            first_out, second_out = self.G(img, mask, vars=None)
-            img_proxy = second_out.detach()
-            second_out_wholeimg = img_proxy * (1 - mask) + second_out * mask
-            fake_scalar = self.D(second_out_wholeimg.detach(), mask)
-            true_scalar = self.D(img_proxy, mask)
+            first_out, second_out = self.G(img, mask[1], vars=None)
+            second_out_wholeimg = img_proxy * (1 - mask[1]) + second_out * mask[1]
+            img_proxy = second_out_wholeimg.detach()
+            fake_scalar = self.D(second_out_wholeimg.detach(), mask[1])
+            true_scalar = self.D(img_proxy, mask[1])
             d_loss = self.d_loss_func(fake_scalar, true_scalar, img)            
             d_grad = torch.autograd.grad(d_loss, self.D.parameters())
             d_fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(d_grad, self.D.parameters())))
 
             ## Generator update
-            first_out, second_out = self.G(img, mask, vars=None)
-            img_proxy = second_out.detach()
-            second_out_wholeimg = img_proxy * (1 - mask) + second_out * mask
-            fake_scalar = self.D(second_out_wholeimg, mask)
+            first_out, second_out = self.G(img, mask[1], vars=None)
+            second_out_wholeimg = img_proxy * (1 - mask[1]) + second_out * mask[1]
+            fake_scalar = self.D(second_out_wholeimg, mask[1])
             g_loss = self.g_loss_func(first_out, second_out, fake_scalar, img_proxy)
             g_grad = torch.autograd.grad(g_loss, self.G.parameters())
             g_fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(g_grad, self.G.parameters())))
 
             # this is the loss and accuracy before first update
             with torch.no_grad():
-                first_out, second_out = self.G(img, mask)
-                second_out_wholeimg = img * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg.detach(), mask)
-                true_scalar = self.D(img, mask)
+                first_out, second_out = self.G(img, mask[0])
+                second_out_wholeimg = img * (1 - mask[0]) + second_out * mask[0]
+                fake_scalar = self.D(second_out_wholeimg.detach(), mask[0])
+                true_scalar = self.D(img, mask[0])
                 d_loss = self.d_loss_func(fake_scalar, true_scalar, img)  
                 losses_d[0] += d_loss
 
-                first_out, second_out = self.G(img, mask)
-                second_out_wholeimg = img * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg, mask)
+                first_out, second_out = self.G(img, mask[0])
+                second_out_wholeimg = img * (1 - mask[0]) + second_out * mask[0]
+                fake_scalar = self.D(second_out_wholeimg, mask[0])
                 g_loss = self.g_loss_func(first_out, second_out, fake_scalar, img)
                 losses_g[0] += g_loss
 
-                if(i == 0): outputs.append(second_out.detach())
+                if(i == 0): outputs.append(second_out_wholeimg.detach())
 
             # this is the loss and accuracy after the first update
             with torch.no_grad():
-                first_out, second_out = self.G(img, mask, vars=g_fast_weights)
-                second_out_wholeimg = img * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg.detach(), mask, vars=d_fast_weights)
-                true_scalar = self.D(img, mask, vars=d_fast_weights)
+                first_out, second_out = self.G(img, mask[0], vars=g_fast_weights)
+                second_out_wholeimg = img * (1 - mask[0]) + second_out * mask[0]
+                fake_scalar = self.D(second_out_wholeimg.detach(), mask[0], vars=d_fast_weights)
+                true_scalar = self.D(img, mask[0], vars=d_fast_weights)
                 d_loss = self.d_loss_func(fake_scalar, true_scalar, img)  
-                losses_d[0] += d_loss
+                losses_d[1] += d_loss
 
-                first_out, second_out = self.G(img, mask, vars=g_fast_weights)
-                second_out_wholeimg = img * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg, mask, vars=d_fast_weights)
+                first_out, second_out = self.G(img, mask[0], vars=g_fast_weights)
+                second_out_wholeimg = img * (1 - mask[0]) + second_out * mask[0]
+                fake_scalar = self.D(second_out_wholeimg, mask[0], vars=d_fast_weights)
                 g_loss = self.g_loss_func(first_out, second_out, fake_scalar, img)
-                losses_g[0] += g_loss
+                losses_g[1] += g_loss
 
-                if(i == 0): outputs.append(second_out.detach())
+                if(i == 0): outputs.append(second_out_wholeimg.detach())
 
 
             for k in range(1, self.update_step):
                 # Inner Loop losses
-                first_out, second_out = self.G(img, mask, vars=g_fast_weights)
-                img_proxy = second_out.detach()
-                second_out_wholeimg = img_proxy * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg.detach(), mask, vars=d_fast_weights)
-                true_scalar = self.D(img_proxy, mask, vars=d_fast_weights)
+                first_out, second_out = self.G(img, mask[k+1], vars=g_fast_weights)
+                second_out_wholeimg = img_proxy * (1 - mask[k+1]) + second_out * mask[k+1]
+                fake_scalar = self.D(second_out_wholeimg.detach(), mask[k+1], vars=d_fast_weights)
+                true_scalar = self.D(img_proxy, mask[k+1], vars=d_fast_weights)
                 d_loss = self.d_loss_func(fake_scalar, true_scalar, img_proxy)  
                 d_grad = torch.autograd.grad(d_loss, self.D.parameters())
                 d_fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(d_grad, self.D.parameters())))
 
-                first_out, second_out = self.G(img, mask, vars=g_fast_weights)
-                img_proxy = second_out.detach()
-                second_out_wholeimg = img_proxy * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg, mask, vars=d_fast_weights)
+                first_out, second_out = self.G(img, mask[k+1], vars=g_fast_weights)
+                second_out_wholeimg = img_proxy * (1 - mask[k+1]) + second_out * mask[k+1]
+                fake_scalar = self.D(second_out_wholeimg, mask[k+1], vars=d_fast_weights)
                 g_loss = self.g_loss_func(first_out, second_out, fake_scalar, img_proxy)
                 g_grad = torch.autograd.grad(g_loss, self.G.parameters())
                 g_fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(g_grad, self.G.parameters())))
 
                 # Outer Loop losses
-                first_out, second_out = self.G(img, mask, vars=g_fast_weights)
-                second_out_wholeimg = img * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg.detach(), mask, vars=d_fast_weights)
-                true_scalar = self.D(img, mask, vars=d_fast_weights)
+                first_out, second_out = self.G(img, mask[0], vars=g_fast_weights)
+                second_out_wholeimg = img * (1 - mask[0]) + second_out * mask[0]
+                fake_scalar = self.D(second_out_wholeimg.detach(), mask[0], vars=d_fast_weights)
+                true_scalar = self.D(img, mask[0], vars=d_fast_weights)
                 d_loss = self.d_loss_func(fake_scalar, true_scalar, img)  
                 losses_d[k+1] += d_loss
 
-                first_out, second_out = self.G(img, mask, vars=g_fast_weights)
-                second_out_wholeimg = img * (1 - mask) + second_out * mask
-                fake_scalar = self.D(second_out_wholeimg, mask, vars=d_fast_weights)
+                first_out, second_out = self.G(img, mask[0], vars=g_fast_weights)
+                second_out_wholeimg = img * (1 - mask[0]) + second_out * mask[0]
+                fake_scalar = self.D(second_out_wholeimg, mask[0], vars=d_fast_weights)
                 g_loss = self.g_loss_func(first_out, second_out, fake_scalar, img)
                 losses_g[k+1] += g_loss
 
-                if(i == 0): outputs.append(second_out.detach())
+                if(i == 0): outputs.append(second_out_wholeimg.detach())
 
             
         # end of all tasks
