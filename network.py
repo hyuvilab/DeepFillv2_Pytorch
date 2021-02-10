@@ -215,6 +215,7 @@ class PatchDiscriminator(nn.Module):
     def __init__(self, opt):
         super(PatchDiscriminator, self).__init__()
         self.vars = nn.ParameterList()
+        self.sn_uv = []
 
         self.config = [
             ('conv', [opt.in_channels, opt.latent_channels, 7, 1, 3, opt.pad_type, opt.activation, opt.norm]),
@@ -237,16 +238,16 @@ class PatchDiscriminator(nn.Module):
                 # Spectral Normalization
                 height = w.data.shape[0]
                 width = w.view(height, -1).data.shape[1]
-                u = Parameter(w.data.new(height).normal_(0, 1))#, requires_grad=False)      >> This may be problematic!!
-                v = Parameter(w.data.new(width).normal_(0, 1))#, requires_grad=False)
+                u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False).cuda() 
+                v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False).cuda()
                 u.data = l2normalize(u.data)
                 v.data = l2normalize(v.data)
 
                 self.vars.append(w)
                 self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
-                self.vars.append(u)
-                self.vars.append(v)
-                count += 4
+                self.sn_uv.append(u)
+                self.sn_uv.append(v)
+                count += 2
         return count
 
 
@@ -259,8 +260,8 @@ class PatchDiscriminator(nn.Module):
 
                 # Spectral Normalization here
                 w = vars[idx]
-                u = vars[idx+2]
-                v = vars[idx+3]
+                u = self.sn_uv[idx]
+                v = self.sn_uv[idx+1]
                 height = w.data.shape[0]
                 v.data = l2normalize(torch.mv(torch.t(w.view(height,-1).data), u.data))
                 u.data = l2normalize(torch.mv(w.view(height,-1).data, v.data))
@@ -270,7 +271,7 @@ class PatchDiscriminator(nn.Module):
                 x = F.conv2d(x, w, vars[idx+1], param_config[3], 0)
                 if(param_config[7] == 'lrelu'):
                     x = F.leaky_relu(x, 0.2, inplace=True)
-                idx += 4
+                idx += 2
         return x
 
 

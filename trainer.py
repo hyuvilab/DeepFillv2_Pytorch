@@ -389,6 +389,7 @@ def Meta_trainer(opt):
             
             # Meta-train step
             loss_D, loss_G, outputs = maml(img, mask)
+            mask = mask[:, 0, :, :, :]
 
             # Determine approximate time left
             batches_done = epoch * len(dataloader) + batch_idx
