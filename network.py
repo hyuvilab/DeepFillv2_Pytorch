@@ -43,10 +43,10 @@ def weights_init(net, init_type = 'kaiming', init_gain = 0.02):
 #-----------------------------------------------
 # Input: masked image + mask
 # Output: filled image
+
 class GatedGenerator(nn.Module):
     def __init__(self, opt):
         super(GatedGenerator, self).__init__()
-
 
         self.vars = nn.ParameterList()
 
@@ -99,7 +99,7 @@ class GatedGenerator(nn.Module):
             ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, 'relu', opt.norm])
         ]
         self.refine_atten_2_start = self.build_parameters(self.refine_atten_1_config) + self.refine_atten_1_start
-
+        
         self.refine_atten_2_config = [
             ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm]),
             ('gatedconv', [opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, 1, opt.pad_type, opt.activation, opt.norm])
@@ -206,23 +206,114 @@ class GatedGenerator(nn.Module):
         offset_flow = F.interpolate(offset_flow, (img.shape[2], img.shape[3]))
         return first_out, second_out, offset_flow
 
+'''
+class GatedGenerator_(nn.Module):
+    def __init__(self, opt):
+        super(GatedGenerator_, self).__init__()
+        self.coarse = nn.Sequential(
+            # encoder
+            GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels * 2, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 2, opt.latent_channels * 4, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            # Bottleneck
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, dilation = 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, dilation = 4, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, dilation = 8, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, dilation = 16, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            # decoder
+            TransposeGatedConv2d(opt.latent_channels * 4, opt.latent_channels * 2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 2, opt.latent_channels * 2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            TransposeGatedConv2d(opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels//2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels//2, opt.out_channels, 3, 1, 1, pad_type = opt.pad_type, activation = 'none', norm = opt.norm),
+            nn.Tanh()
+      )
+        
+        self.refine_conv = nn.Sequential(
+            GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*2, opt.latent_channels*2, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*2, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 2, dilation = 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 4, dilation = 4, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 8, dilation = 8, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels * 4, opt.latent_channels * 4, 3, 1, 16, dilation = 16, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm)
+        )
+        self.refine_atten_1 = nn.Sequential(
+            GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*2, opt.latent_channels*4, 3, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = 'relu', norm = opt.norm)
+        )
+        self.refine_atten_2 = nn.Sequential(
+            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm)
+        )
+        self.refine_combine = nn.Sequential(
+            GatedConv2d(opt.latent_channels*8, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*4, opt.latent_channels*4, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            TransposeGatedConv2d(opt.latent_channels * 4, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels*2, opt.latent_channels*2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            TransposeGatedConv2d(opt.latent_channels * 2, opt.latent_channels, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels, opt.latent_channels//2, 3, 1, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
+            GatedConv2d(opt.latent_channels//2, opt.out_channels, 3, 1, 1, pad_type = opt.pad_type, activation = 'none', norm = opt.norm),
+            nn.Tanh()
+        )
+        self.context_attention = ContextualAttention(ksize=3, stride=1, rate=2, fuse_k=3, softmax_scale=10,
+                                                     fuse=True)
+
+        
+    def forward(self, img, mask):
+        # img: entire img
+        # mask: 1 for mask region; 0 for unmask region
+        # Coarse
+        first_masked_img = img * (1 - mask) + mask
+        first_in = torch.cat((first_masked_img, mask), dim=1)       # in: [B, 4, H, W]
+        first_out = self.coarse(first_in)                           # out: [B, 3, H, W]
+        first_out = nn.functional.interpolate(first_out, (img.shape[2], img.shape[3]))
+        # Refinement
+        second_masked_img = img * (1 - mask) + first_out * mask
+        second_in = torch.cat([second_masked_img, mask], dim=1)
+        refine_conv = self.refine_conv(second_in)     
+        refine_atten = self.refine_atten_1(second_in)
+        mask_s = nn.functional.interpolate(mask, (refine_atten.shape[2], refine_atten.shape[3]))
+        refine_atten, offset_flow = self.context_attention(refine_atten, refine_atten, mask_s)
+        refine_atten = self.refine_atten_2(refine_atten)
+        second_out = torch.cat([refine_conv, refine_atten], dim=1)
+        second_out = self.refine_combine(second_out)
+        second_out = nn.functional.interpolate(second_out, (img.shape[2], img.shape[3]))
+        
+        offset_flow = F.interpolate(offset_flow, (img.shape[2], img.shape[3]))
+        return first_out, second_out, offset_flow
+'''
+
 #-----------------------------------------------
 #                  Discriminator
 #-----------------------------------------------
 # Input: generated image / ground truth and mask
 # Output: patch based region, we set 30 * 30
+
 class PatchDiscriminator(nn.Module):
     def __init__(self, opt):
         super(PatchDiscriminator, self).__init__()
         self.vars = nn.ParameterList()
 
         self.config = [
-            ('conv', [opt.in_channels, opt.latent_channels, 7, 1, 3, opt.pad_type, opt.activation, opt.norm]),
-            ('conv', [opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('conv', [opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, opt.pad_type, opt.activation, opt.norm]),
-            ('conv', [opt.latent_channels * 4, 1, 4, 2, 1, opt.pad_type, 'none', 'none'])
+            ('conv', [opt.in_channels, opt.latent_channels, 7, 1, 3, 1, opt.pad_type, opt.activation, opt.norm, True]),
+            ('conv', [opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
+            ('conv', [opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
+            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
+            ('conv', [opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, 1, opt.pad_type, opt.activation, opt.norm, True]),
+            ('conv', [opt.latent_channels * 4, 1, 4, 2, 1, 1, opt.pad_type, 'none', 'none', True])
         ]
         self.build_parameters(self.config)
 
@@ -237,8 +328,8 @@ class PatchDiscriminator(nn.Module):
                 # Spectral Normalization
                 height = w.data.shape[0]
                 width = w.view(height, -1).data.shape[1]
-                u = Parameter(w.data.new(height).normal_(0, 1))#, requires_grad=False)      # >> This may be problematic!!
-                v = Parameter(w.data.new(width).normal_(0, 1))#, requires_grad=False)
+                u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False)      # >> This may be problematic!!
+                v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False)
                 u.data = l2normalize(u.data)
                 v.data = l2normalize(v.data)
 
@@ -281,7 +372,32 @@ class PatchDiscriminator(nn.Module):
         x = torch.cat((img, mask), 1)
         x = self.inner_modules(x, vars, self.config)
         return x
+        
 
+'''
+class PatchDiscriminator(nn.Module):
+    def __init__(self, opt):
+        super(PatchDiscriminator, self).__init__()
+        # Down sampling
+        self.block1 = Conv2dLayer(opt.in_channels, opt.latent_channels, 7, 1, 3, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
+        self.block2 = Conv2dLayer(opt.latent_channels, opt.latent_channels * 2, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
+        self.block3 = Conv2dLayer(opt.latent_channels * 2, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
+        self.block4 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
+        self.block5 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
+        self.block6 = Conv2dLayer(opt.latent_channels * 4, 1, 4, 2, 1, pad_type = opt.pad_type, activation = 'none', norm = 'none', sn = True)
+                                     in_channels, out_channels, kernel_size, stride = 1, padding = 0, dilation = 1, 
+                                     pad_type = 'zero', activation = 'elu', norm = 'none', sn = False
+    def forward(self, img, mask):
+        # the input x should contain 4 channels because it is a combination of recon image and mask
+        x = torch.cat((img, mask), 1)
+        x = self.block1(x)                                      # out: [B, 64, 256, 256]
+        x = self.block2(x)                                      # out: [B, 128, 128, 128]
+        x = self.block3(x)                                      # out: [B, 256, 64, 64]
+        x = self.block4(x)                                      # out: [B, 256, 32, 32]
+        x = self.block5(x)                                      # out: [B, 256, 16, 16]
+        x = self.block6(x)                                      # out: [B, 256, 8, 8]
+        return x
+        '''
 # ----------------------------------------
 #            Perceptual Network
 # ----------------------------------------
@@ -303,3 +419,4 @@ class PerceptualNet(nn.Module):
         for block in self.block:
             x = block(x)
         return x
+        

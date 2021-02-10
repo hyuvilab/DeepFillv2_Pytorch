@@ -1,6 +1,6 @@
 python3 train.py \
 --baseroot '/home/dataset/places2/small_image/data_256' \
---save_path './models/without_perceptual' \
+--save_path './models' \
 --sample_path './samples' \
 --gpu_ids '1' \
 --gan_type 'WGAN' \
