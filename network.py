@@ -205,11 +205,11 @@ class GatedGenerator(nn.Module):
         second_out = F.interpolate(second_out, (img.shape[2], img.shape[3]))
         offset_flow = F.interpolate(offset_flow, (img.shape[2], img.shape[3]))
         return first_out, second_out, offset_flow
-
 '''
-class GatedGenerator_(nn.Module):
+
+class GatedGenerator(nn.Module):
     def __init__(self, opt):
-        super(GatedGenerator_, self).__init__()
+        super(GatedGenerator, self).__init__()
         self.coarse = nn.Sequential(
             # encoder
             GatedConv2d(opt.in_channels, opt.latent_channels, 5, 1, 2, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm),
@@ -294,6 +294,7 @@ class GatedGenerator_(nn.Module):
         
         offset_flow = F.interpolate(offset_flow, (img.shape[2], img.shape[3]))
         return first_out, second_out, offset_flow
+
 '''
 
 #-----------------------------------------------
@@ -391,7 +392,7 @@ class PatchDiscriminator(nn.Module):
         self.block5 = Conv2dLayer(opt.latent_channels * 4, opt.latent_channels * 4, 4, 2, 1, pad_type = opt.pad_type, activation = opt.activation, norm = opt.norm, sn = True)
         self.block6 = Conv2dLayer(opt.latent_channels * 4, 1, 4, 2, 1, pad_type = opt.pad_type, activation = 'none', norm = 'none', sn = True)
 
-        
+
     def forward(self, img, mask):
         # the input x should contain 4 channels because it is a combination of recon image and mask
         x = torch.cat((img, mask), 1)
