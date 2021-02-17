@@ -127,13 +127,17 @@ class GatedGenerator(nn.Module):
         for (name, param_config) in config_list:
             if(name == 'gatedconv' or name == 'transposedgatedconv'):
                 w = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
-                torch.nn.init.kaiming_normal_(w)
+                torch.nn.init.xavier_normal_(w, 0.02)
                 self.vars.append(w)
-                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
+                b1 =nn.Parameter(torch.empty(param_config[1]))
+                init.uniform_(b1)
+                self.vars.append(b1)
                 w2 = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
-                torch.nn.init.kaiming_normal_(w2)
+                torch.nn.init.xavier_normal_(w2, 0.02)
                 self.vars.append(w2)
-                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
+                b2 =nn.Parameter(torch.empty(param_config[1]))
+                init.uniform_(b2)
+                self.vars.append(b2)
                 count += 4
 
         return count

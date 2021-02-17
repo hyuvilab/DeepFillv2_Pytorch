@@ -1,15 +1,15 @@
 python3 train.py \
 --baseroot '/home/dataset/places2/small_image/data_256' \
---save_path './models/GvarDold' \
+--save_path './models/old_ver' \
 --sample_path './samples' \
---gpu_ids '1' \
+--gpu_ids '0' \
 --gan_type 'WGAN' \
 --cudnn_benchmark True \
 --checkpoint_interval 1 \
 --multi_gpu True \
 --load_name '' \
---epochs 20 \
---batch_size 16 \
+--epochs 10 \
+--batch_size 32 \
 --lr_g 1e-4 \
 --lr_d 1e-4 \
 --lambda_l1 10 \
@@ -34,4 +34,6 @@ python3 train.py \
 --max_angle 4 \
 --max_len 20 \
 --max_width 5 \
---logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/GvarDold' \
+--logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/old_ver' \
+--resume \
+--resume_epoch 6

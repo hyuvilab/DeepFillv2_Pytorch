@@ -57,32 +57,59 @@ def WGAN_trainer(opt):
             param_group['lr'] = lr
     
     # Save the two-stage generator model
-    def save_model_generator(net, epoch, opt):
-        """Save the model at "checkpoint_interval" and its multiple"""
-        model_name = 'deepfillv2_WGAN_G_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
-        model_name = os.path.join(save_folder, model_name)
-        if opt.multi_gpu == True:
-            if epoch % opt.checkpoint_interval == 0:
-                torch.save(net.module.state_dict(), model_name)
-                print('The trained model is successfully saved at epoch %d' % (epoch))
+    def save_model_generator(net, epoch, opt, mode=0):
+        if mode == 0:
+            """Save the model at "checkpoint_interval" and its multiple"""
+            model_name = 'deepfillv2_WGAN_G_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
+            model_name = os.path.join(save_folder, model_name)
+            if opt.multi_gpu == True:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.module.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d' % (epoch))
+            else:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d' % (epoch))
         else:
-            if epoch % opt.checkpoint_interval == 0:
-                torch.save(net.state_dict(), model_name)
-                print('The trained model is successfully saved at epoch %d' % (epoch))
+            """Save the model at "checkpoint_interval" and its multiple"""
+            model_name = 'deepfillv2_WGAN_G_epoch%d_batchsize%d_%d_per_4.pth' % (epoch, opt.batch_size, mode)
+            model_name = os.path.join(save_folder, model_name)
+            if opt.multi_gpu == True:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.module.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d * %d_per_4' % (epoch, mode))
+            else:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d * %d_per_4' % (epoch, mode))
+            
                 
     # Save the dicriminator model
-    def save_model_discriminator(net, epoch, opt):
-        """Save the model at "checkpoint_interval" and its multiple"""
-        model_name = 'deepfillv2_WGAN_D_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
-        model_name = os.path.join(save_folder, model_name)
-        if opt.multi_gpu == True:
-            if epoch % opt.checkpoint_interval == 0:
-                torch.save(net.module.state_dict(), model_name)
-                print('The trained model is successfully saved at epoch %d' % (epoch))
+    def save_model_discriminator(net, epoch, opt, mode=0):
+        if mode == 0:
+            """Save the model at "checkpoint_interval" and its multiple"""
+            model_name = 'deepfillv2_WGAN_D_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
+            model_name = os.path.join(save_folder, model_name)
+            if opt.multi_gpu == True:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.module.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d' % (epoch))
+            else:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d' % (epoch))
         else:
-            if epoch % opt.checkpoint_interval == 0:
-                torch.save(net.state_dict(), model_name)
-                print('The trained model is successfully saved at epoch %d' % (epoch))
+            """Save the model at "checkpoint_interval" and its multiple"""
+            model_name = 'deepfillv2_WGAN_D_epoch%d_batchsize%d_%d_per_4.pth' % (epoch, opt.batch_size, mode)
+            model_name = os.path.join(save_folder, model_name)
+            if opt.multi_gpu == True:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.module.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d * %d_per_4' % (epoch, mode))
+            else:
+                if epoch % opt.checkpoint_interval == 0:
+                    torch.save(net.state_dict(), model_name)
+                    print('The trained model is successfully saved at epoch %d * %d_per_4' % (epoch, mode))
                 
     # load the model
     def load_model(net, epoch, opt, type='G'):
@@ -208,7 +235,7 @@ def WGAN_trainer(opt):
             prev_time = time.time()
             
             # Print log
-            print("\r[Epoch %d/%d] [Batch %d/%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
+            print("\r[Epoch %d_per_%d] [Batch %d_per_%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
                 ((epoch + 1), opt.epochs, batch_idx, len(dataloader), first_L1Loss.item(), second_L1Loss.item()))
             print("\r[D Loss: %.5f] [G Loss: %.5f] time_left: %s" %
                 (loss_D.item(), GAN_Loss.item(), time_left))
@@ -246,7 +273,15 @@ def WGAN_trainer(opt):
                 # else:
                 #     viz_images = torch.stack([masked_img, second_out, offset_flow], dim=1)
                 # viz_images = viz_images.view(-1, *list(masked_img.size())[1:])
-                
+            if int(len(dataloader) * 1/4) == batch_idx:
+                save_model_generator(generator, (epoch + 1), opt, 1)
+                save_model_discriminator(discriminator, (epoch + 1), opt, 1)
+            elif int(len(dataloader) * 1/2) == batch_idx:
+                save_model_generator(generator, (epoch + 1), opt, 2)
+                save_model_discriminator(discriminator, (epoch + 1), opt, 2)
+            elif int(len(dataloader) * 3/4) == batch_idx:
+                save_model_generator(generator, (epoch + 1), opt, 3)
+                save_model_discriminator(discriminator, (epoch + 1), opt, 3)
 
         # Learning rate decrease
         adjust_learning_rate(opt.lr_g, optimizer_g, (epoch + 1), opt)
@@ -408,7 +443,7 @@ def Meta_trainer(opt):
             prev_time = time.time()
             
             # Print log
-            print("\r[Epoch %d/%d] [Batch %d/%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
+            print("\r[Epoch %d_per_%d] [Batch %d_per_%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
                 ((epoch + 1), opt.epochs, batch_idx, len(dataloader), 0, 0))
                 #((epoch + 1), opt.epochs, batch_idx, len(dataloader), first_L1Loss.item(), second_L1Loss.item()))
             print("\r[D Loss: %.5f] [G Loss: %.5f] time_left: %s" %

@@ -3,10 +3,11 @@ python3 test.py \
 --baseroot_mask './test_data_mask/' \
 --results_path './results' \
 --gan_type 'WGAN' \
---gpu_ids '0' \
+--gpu_ids 2 \
 --epoch 40 \
 --batch_size 1 \
---num_workers 8 \
+--num_workers 1 \
 --pad_type 'zero' \
 --activation 'elu' \
 --norm 'none' \
+--cudnn_benchmark True
