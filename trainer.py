@@ -238,7 +238,7 @@ def WGAN_trainer(opt):
             # forward propagation
             first_out_wholeimg = img * (1 - mask) + first_out * mask        # in range [0, 1]
             second_out_wholeimg = img * (1 - mask) + second_out * mask      # in range [0, 1]
-            
+            '''
             batch_pos_neg = torch.cat((img, second_out_wholeimg.detach()), 0)
             # print(batch_pos_neg.shape)
 #  #           batch_pos_neg = torch.cat((batch_pos_neg, torch.tile(mask, [opt.batch_size*2, 1, 1, 1])), axis=3)
@@ -246,9 +246,9 @@ def WGAN_trainer(opt):
             pos_neg = discriminator(batch_pos_neg, mask.repeat(2,1,1,1))
             # print(pos_neg.shape)
             pos, neg = torch.split(pos_neg, opt.batch_size)
-            
-            # pos = discriminator(img, mask)
-            # neg = discriminator(second_out_wholeimg.detach(), mask)
+            '''
+            pos = discriminator(img, mask)
+            neg = discriminator(second_out_wholeimg.detach(), mask)
             # print(pos.shape, neg.shape)
             hinge_pos = torch.nn.ReLU()(1.0 - pos).mean()
             hinge_neg = torch.nn.ReLU()(1.0 + neg).mean()

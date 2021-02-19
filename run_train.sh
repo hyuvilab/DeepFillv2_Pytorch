@@ -1,6 +1,6 @@
 python3 train.py \
 --baseroot '/home/dataset/places2/small_image/data_256' \
---save_path '/home/eh1404/works/DeepFillv2_Pytorch/models/posneg' \
+--save_path '/home/eh1404/works/DeepFillv2_Pytorch/models/remove_posneg' \
 --sample_path './samples' \
 --gpu_ids '3' \
 --gan_type 'WGAN' \
@@ -34,4 +34,4 @@ python3 train.py \
 --max_angle 4 \
 --max_len 20 \
 --max_width 40 \
---logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/posneg' \
+--logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/remove_posneg' \
