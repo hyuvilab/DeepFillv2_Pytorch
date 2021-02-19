@@ -43,7 +43,7 @@ def weights_init(net, init_type = 'kaiming', init_gain = 0.02):
 #-----------------------------------------------
 # Input: masked image + mask
 # Output: filled image
-
+'''
 class GatedGenerator(nn.Module):
     def __init__(self, opt):
         super(GatedGenerator, self).__init__()
@@ -127,17 +127,13 @@ class GatedGenerator(nn.Module):
         for (name, param_config) in config_list:
             if(name == 'gatedconv' or name == 'transposedgatedconv'):
                 w = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
-                torch.nn.init.xavier_normal_(w, 0.02)
+                torch.nn.init.kaiming_normal_(w)
                 self.vars.append(w)
-                b1 =nn.Parameter(torch.empty(param_config[1]))
-                init.uniform_(b1)
-                self.vars.append(b1)
+                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
                 w2 = nn.Parameter(torch.ones(param_config[1], param_config[0], param_config[2], param_config[2]))
-                torch.nn.init.xavier_normal_(w2, 0.02)
+                torch.nn.init.kaiming_normal_(w2)
                 self.vars.append(w2)
-                b2 =nn.Parameter(torch.empty(param_config[1]))
-                init.uniform_(b2)
-                self.vars.append(b2)
+                self.vars.append(nn.Parameter(torch.zeros(param_config[1])))
                 count += 4
 
         return count
@@ -299,7 +295,6 @@ class GatedGenerator(nn.Module):
         offset_flow = F.interpolate(offset_flow, (img.shape[2], img.shape[3]))
         return first_out, second_out, offset_flow
 
-'''
 
 #-----------------------------------------------
 #                  Discriminator
@@ -400,6 +395,7 @@ class PatchDiscriminator(nn.Module):
     def forward(self, img, mask):
         # the input x should contain 4 channels because it is a combination of recon image and mask
         x = torch.cat((img, mask), 1)
+        # print(x.shape)
         x = self.block1(x)                                      # out: [B, 64, 256, 256]
         x = self.block2(x)                                      # out: [B, 128, 128, 128]
         x = self.block3(x)                                      # out: [B, 256, 64, 64]
@@ -407,7 +403,7 @@ class PatchDiscriminator(nn.Module):
         x = self.block5(x)                                      # out: [B, 256, 16, 16]
         x = self.block6(x)                                      # out: [B, 256, 8, 8]
         return x
-        
+    
 # ----------------------------------------
 #            Perceptual Network
 # ----------------------------------------

@@ -1,18 +1,18 @@
 python3 train.py \
 --baseroot '/home/dataset/places2/small_image/data_256' \
---save_path './models/old_ver' \
+--save_path '/home/eh1404/works/DeepFillv2_Pytorch/models/posneg' \
 --sample_path './samples' \
---gpu_ids '0' \
+--gpu_ids '3' \
 --gan_type 'WGAN' \
 --cudnn_benchmark True \
 --checkpoint_interval 1 \
 --multi_gpu True \
 --load_name '' \
---epochs 10 \
---batch_size 32 \
+--epochs 20 \
+--batch_size 16 \
 --lr_g 1e-4 \
 --lr_d 1e-4 \
---lambda_l1 10 \
+--lambda_l1 1 \
 --lambda_perceptual 10 \
 --lambda_gan 1 \
 --lr_decrease_epoch 10 \
@@ -24,7 +24,7 @@ python3 train.py \
 --pad_type 'zero' \
 --activation 'elu' \
 --norm 'none' \
---init_type 'kaiming' \
+--init_type 'xavier' \
 --init_gain 0.02 \
 --imgsize 256 \
 --mask_type 'free_form' \
@@ -33,7 +33,5 @@ python3 train.py \
 --bbox_shape 30 \
 --max_angle 4 \
 --max_len 20 \
---max_width 5 \
---logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/old_ver' \
---resume \
---resume_epoch 6
+--max_width 40 \
+--logs_dir_path '/home/eh1404/works/DeepFillv2_Pytorch/models/posneg' \

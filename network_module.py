@@ -65,6 +65,11 @@ class Conv2dLayer(nn.Module):
             x = self.activation(x)
         return x
 
+class Flatten(nn.Module):
+    def forward(self, x):
+        x = x.view(x.size()[0], -1)
+        return x
+
 class TransposeConv2dLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride = 1, padding = 0, dilation = 1, pad_type = 'zero', activation = 'lrelu', norm = 'none', sn = False, scale_factor = 2):
         super(TransposeConv2dLayer, self).__init__()
@@ -143,7 +148,7 @@ class GatedConv2d(nn.Module):
         return x
 
 class TransposeGatedConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride = 1, padding = 0, dilation = 1, pad_type = 'zero', activation = 'lrelu', norm = 'none', sn = True, scale_factor = 2):
+    def __init__(self, in_channels, out_channels, kernel_size, stride = 1, padding = 0, dilation = 1, pad_type = 'zero', activation = 'lrelu', norm = 'none', sn = False, scale_factor = 2):
         super(TransposeGatedConv2d, self).__init__()
         # Initialize the conv scheme
         self.scale_factor = scale_factor

@@ -80,4 +80,5 @@ if __name__ == "__main__":
             trainer.Meta_trainer(opt)
         else:
             trainer.WGAN_trainer(opt)
+            # trainer._trainer(opt)
     

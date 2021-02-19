@@ -16,6 +16,55 @@ import network
 import train_dataset
 import utils
 
+
+def _trainer(opt):
+    
+    # cudnn benchmark accelerates the network
+    cudnn.benchmark = opt.cudnn_benchmark
+
+    # configurations
+    save_folder = opt.save_path
+    sample_folder = opt.sample_path
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    if not os.path.exists(sample_folder):
+        os.makedirs(sample_folder)
+
+    # Build networks
+    generator = utils.create_generator(opt)
+    discriminator = utils.create_discriminator(opt)
+    for name, param in discriminator.named_parameters():
+        if param.requires_grad:
+            print(name, end=', ')
+            
+    print('----------')
+    for name, param in discriminator.named_parameters():
+        print(name, end=', ')
+    # load the model
+    def load_model(net, epoch, opt, type='G'):
+        """Save the model at "checkpoint_interval" and its multiple"""
+        if type == 'G':
+            model_name = 'deepfillv2_WGAN_G_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
+        else:
+            model_name = 'deepfillv2_WGAN_D_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
+        model_name = os.path.join(save_folder, model_name)
+        pretrained_dict = torch.load(model_name)
+#        pretrained_dict = utils.replace_var_name(loaded_dict=pretrained_dict, crr_dict=)
+#        print(pretrained_dict)
+        net.load_state_dict(pretrained_dict)
+
+    load_model(generator, opt.resume_epoch, opt, type='G')
+    load_model(discriminator, opt.resume_epoch, opt, type='D')
+    print('--------------------Pretrained Models are Loaded--------------------')
+
+def tile(a, dim, n_tile):
+    init_dim = a.size(dim)
+    repeat_idx = [1] * a.dim()
+    repeat_idx[dim] = n_tile
+    a = a.repeat(*(repeat_idx))
+    order_index = torch.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
+    return torch.index_select(a, dim, order_index)
+
 def WGAN_trainer(opt):
     # ----------------------------------------
     #      Initialize training parameters
@@ -120,8 +169,8 @@ def WGAN_trainer(opt):
             model_name = 'deepfillv2_WGAN_D_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
         model_name = os.path.join(save_folder, model_name)
         pretrained_dict = torch.load(model_name)
+        # list로 까서 var들 이름 바꾸기 (순서대로1대1매치)
         net.load_state_dict(pretrained_dict)
-
     if opt.resume:
         load_model(generator, opt.resume_epoch, opt, type='G')
         load_model(discriminator, opt.resume_epoch, opt, type='D')
@@ -163,6 +212,7 @@ def WGAN_trainer(opt):
     # Tensor type
     Tensor = torch.cuda.FloatTensor
 
+    summary = SummaryWriter(opt.logs_dir_path, flush_secs=1.)
     # Training loop
     for epoch in range(opt.resume_epoch, opt.epochs):
         for batch_idx, (img, height, width) in enumerate(dataloader):
@@ -188,7 +238,22 @@ def WGAN_trainer(opt):
             # forward propagation
             first_out_wholeimg = img * (1 - mask) + first_out * mask        # in range [0, 1]
             second_out_wholeimg = img * (1 - mask) + second_out * mask      # in range [0, 1]
-
+            
+            batch_pos_neg = torch.cat((img, second_out_wholeimg.detach()), 0)
+            # print(batch_pos_neg.shape)
+#  #           batch_pos_neg = torch.cat((batch_pos_neg, torch.tile(mask, [opt.batch_size*2, 1, 1, 1])), axis=3)
+#             print(mask.repeat(1,3,1,1).size(), img.size())
+            pos_neg = discriminator(batch_pos_neg, mask.repeat(2,1,1,1))
+            # print(pos_neg.shape)
+            pos, neg = torch.split(pos_neg, opt.batch_size)
+            
+            # pos = discriminator(img, mask)
+            # neg = discriminator(second_out_wholeimg.detach(), mask)
+            # print(pos.shape, neg.shape)
+            hinge_pos = torch.nn.ReLU()(1.0 - pos).mean()
+            hinge_neg = torch.nn.ReLU()(1.0 + neg).mean()
+            loss_D = 0.5 * (hinge_pos + hinge_neg)
+            '''
             # Fake samples
             fake_scalar = discriminator(second_out_wholeimg.detach(), mask)
             # True samples
@@ -197,8 +262,10 @@ def WGAN_trainer(opt):
             # Loss and optimize
             loss_fake = -torch.mean(torch.min(zero, -valid-fake_scalar))
             loss_true = -torch.mean(torch.min(zero, -valid+true_scalar))
+            
             # Overall Loss and optimize
             loss_D = 0.5 * (loss_fake + loss_true)
+            '''
             loss_D.backward()
             optimizer_d.step()
 
@@ -244,7 +311,6 @@ def WGAN_trainer(opt):
             mask = torch.cat((mask, mask, mask), 1)
             # Summary
             if (batch_idx + 1) % 40 == 0:
-                summary = SummaryWriter(opt.logs_dir_path)
 
                 img_list = [img, masked_img, first_out, second_out, second_out_wholeimg, offset_flow]
                 # img_list = [x[0,:,:,:].copy_(x.data.squeeze()) for x in img_list]
@@ -257,6 +323,8 @@ def WGAN_trainer(opt):
                 summary.add_scalar('first Mask L1 Loss', first_L1Loss.item(), batches_done)
                 summary.add_scalar('second Mask L1 Loss', second_L1Loss.item(), batches_done)
                 summary.add_scalar('D Loss', loss_D.item(), batches_done)
+                summary.add_scalar('D fake Loss', hinge_neg.item(), batches_done)
+                summary.add_scalar('D true Loss', hinge_pos.item(), batches_done)
                 summary.add_scalar('G Loss', GAN_Loss.item(), batches_done)
                 summary.add_scalar('Total G Loss', loss.item(), batches_done)
 

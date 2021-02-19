@@ -16,8 +16,8 @@ def create_generator(opt):
     generator = network.GatedGenerator(opt)
     print('Generator is created!')
     # Duplicate initialization
-    #network.weights_init(generator, init_type = opt.init_type, init_gain = opt.init_gain)
-    print('Initialize generator with %s type' % opt.init_type)
+    # network.weights_init(generator, init_type = opt.init_type, init_gain = opt.init_gain)
+    # print('Initialize generator with %s type' % opt.init_type)
     return generator
 
 def create_discriminator(opt):
@@ -25,8 +25,8 @@ def create_discriminator(opt):
     discriminator = network.PatchDiscriminator(opt)
     print('Discriminator is created!')
     # Duplicate initialization
-    #network.weights_init(discriminator, init_type = opt.init_type, init_gain = opt.init_gain)
-    print('Initialize discriminator with %s type' % opt.init_type)
+    # network.weights_init(discriminator, init_type = opt.init_type, init_gain = opt.init_gain)
+    # print('Initialize discriminator with %s type' % opt.init_type)
     return discriminator
 
 def create_perceptualnet():
@@ -84,6 +84,19 @@ def check_path(path):
     if not os.path.exists(path):
         os.makedirs(path)
     
+def replace_var_name(loaded_dict, crr_dict):
+    '''
+    crr_dict : names of the current model variables
+    loaded_dict : state_dict obtained by ckp
+    '''
+    assert len(loaded_dict) == len(crr_dict)
+    new_keys = list(crr_dict)
+    old_keys = list(loaded_dict)
+    for i, old_key in enumerate(old_keys):
+        loaded_dict[new_keys[i]] = loaded_dict.pop(old_key)
+    return loaded_dict
+
+
 # ----------------------------------------
 #    Validation and Sample at training
 # ----------------------------------------
